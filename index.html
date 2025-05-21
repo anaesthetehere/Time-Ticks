@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Personalized Pomodoro Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+  body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #333;
+  }
+  header {
+    padding: 1rem 1rem 0;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #3b1d0f;
+    text-align: center;
+  }
+  .timer {
+    margin: 2rem 0 0.5rem;
+    background: #fff3db;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(248,181,0,0.3);
+    width: 280px;
+    text-align: center;
+    padding: 1.5rem 1.2rem 2rem;
+    user-select: none;
+  }
+  .time-display {
+    font-size: 5rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #f8b500;
+  }
+  .controls {
+    margin-top: 1.1rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+  button {
+    background: #f8b500;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.3rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #3b1d0f;
+    cursor: pointer;
+    box-shadow: 0 5px 10px rgba(248,181,0,0.5);
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #fbbf24;
+  }
+  .session-type {
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  .schedule-settings {
+    background: #fff3db;
+    border-radius: 12px;
+    box-shadow: 0 6px 13px rgba(248,181,0,0.3);
+    padding: 1rem 1rem 1rem 1rem;
+    width: 280px;
+    margin-bottom: 2rem;
+  }
+  .setting-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #3b1d0f;
+  }
+  input[type="number"] {
+    width: 55px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid #f8b500;
+    border-radius: 6px;
+    padding: 0.15rem 0.25rem;
+  }
+  .quote-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 85vw;
+    background: rgba(255 255 255 / 0.85);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #3b1d0f;
+    user-select: none;
+  }
+  .footer {
+    margin: 1.5rem 0 1.5rem;
+    font-size: 0.85rem;
+    color: #3b1d0f;
+  }
+  /* Floating quote animation */
+  @keyframes floatQuote {
+    0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+    50% { transform: translateX(-50%) translateY(-10px); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+  .quote-container {
+    animation: floatQuote 6s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+<header>🍂 Personalized Pomodoro & Study Timer 🍂</header>
+
+<div class="timer" role="timer" aria-live="polite" aria-atomic="true">
+  <div class="session-type" id="sessionType">Session: Pomodoro</div>
+  <div class="time-display" id="timerDisplay">25:00</div>
+  <div class="controls">
+    <button id="startPauseBtn" aria-label="Start Timer">Start</button>
+    <button id="resetBtn" aria-label="Reset Timer">Reset</button>
+  </div>
+</div>
+
+<section class="schedule-settings" aria-label="Schedule and timer settings">
+  <div class="setting-group">
+    <label for="pomodoroLength">Pomodoro (minutes):</label>
+    <input type="number" id="pomodoroLength" min="1" max="90" value="25" />
+  </div>
+  <div class="setting-group">
+    <label for="shortBreakLength">Short Break (minutes):</label>
+    <input type="number" id="shortBreakLength" min="1" max="30" value="5" />
+  </div>
+  <div class="setting-group">
+    <label for="longBreakLength">Long Break (minutes):</label>
+    <input type="number" id="longBreakLength" min="5" max="60" value="15" />
+  </div>
+  <div class="setting-group">
+    <label for="pomodorosBeforeLongBreak">Pomodoros before Long Break:</label>
+    <input type="number" id="pomodorosBeforeLongBreak" min="1" max="10" value="4" />
+  </div>
+</section>
+
+<div class="quote-container" id="quote">“Start where you are. Use what you have. Do what you can.”</div>
+
+<audio id="backgroundMusic" src="https://cdn.pixabay.com/download/audio/2022/03/04/audio_9977da018b.mp3?filename=chill-guitar-ambient-loop-11016.mp3" loop></audio>
+
+<script>
+  // Quotes array including motivational & spiritual quotes (some inspired by Premanand Ji Maharaj style)
+  const quotes = [
+    "The mind is everything. What you think you become. – Buddha",
+    "Inhale courage, exhale doubt.",
+    "Every breath is a chance to start anew.",
+    "Do your work with ecstasy, and you will find the Divine in your daily life. – Premanand Ji Maharaj",
+    "Conquer yourself and you will conquer the world.",
+    "Be present in all things and thankful for all things.",
+    "Mastery comes through practice and patience.",
+    "The flower that blooms in adversity is the rarest and most beautiful of all.",
+    "Success is not the key to happiness. Happiness is the key to success.",
+    "Let your studies be a journey towards enlightenment.",
+    "Sitting calmly, doing nothing, spring comes, and the grass grows by itself.",
+    "Peace begins with a smile. – Mother Teresa",
+    "Beware the barrenness of a busy life. – Socrates",
+    "The wound is the place where the Light enters you. – Rumi",
+    "Focus on your breath, and the rest will follow.",
+    "The kundalini rises only when the effort is consistent and sincere.",
+    "Each pomodoro is a seed planted towards your dreams.",
+    "Be the change you wish to see in the world. – Mahatma Gandhi"
+  ];
+
+  // DOM Elements
+  const timerDisplay = document.getElementById('timerDisplay');
+  const sessionTypeDisplay = document.getElementById('sessionType');
+  const startPauseBtn = document.getElementById('startPauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const quoteEl = document.getElementById('quote');
+  const bgMusic = document.getElementById('backgroundMusic');
+
+  // Settings inputs
+  const pomodoroLengthInput = document.getElementById('pomodoroLength');
+  const shortBreakLengthInput = document.getElementById('shortBreakLength');
+  const longBreakLengthInput = document.getElementById('longBreakLength');
+  const pomodorosBeforeLongBreakInput = document.getElementById('pomodorosBeforeLongBreak');
+
+  // Timer variables
+  let currentMode = 'pomodoro'; // pomodoro, shortBreak, longBreak
+  let timer = null;
+  let timeRemaining = 0; // in seconds
+  let pomodoroCount = 0;
+  let isRunning = false;
+
+
+  // Convert minutes to seconds helper function
+  function minutesToSeconds(min) {
+    return min * 60;
+  }
+
+  // Format seconds as MM:SS
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }
+
+  // Update the timer display and session type label
+  function updateDisplay() {
+    timerDisplay.textContent = formatTime(timeRemaining);
+    let label;
+    switch(currentMode){
+      case 'pomodoro': label='Session: Pomodoro'; break;
+      case 'shortBreak': label='Session: Short Break'; break;
+      case 'longBreak': label='Session: Long Break'; break;
+    }
+    sessionTypeDisplay.textContent = label;
+  }
+
+  // Load time for current mode from inputs
+  function loadTime(){
+    switch(currentMode) {
+      case 'pomodoro':
+        timeRemaining = minutesToSeconds(parseInt(pomodoroLengthInput.value));
+        break;
+      case 'shortBreak':
+        timeRemaining = minutesToSeconds(parseInt(shortBreakLengthInput.value));
+        break;
+      case 'longBreak':
+        timeRemaining = minutesToSeconds(parseInt(longBreakLengthInput.value));
+        break;
+    }
+  }
+
+  // Advance to next mode
+  function nextMode() {
+    if (currentMode === 'pomodoro') {
+      pomodoroCount++;
+      if (pomodoroCount % parseInt(pomodorosBeforeLongBreakInput.value) === 0) {
+        currentMode = 'longBreak';
+      } else {
+        currentMode = 'shortBreak';
+      }
+    } else {
+      currentMode = 'pomodoro';
+    }
+    loadTime();
+    updateDisplay();
+    showRandomQuote();
+  }
+
+  // Timer tick event
+  function timerTick() {
+    if (timeRemaining > 0) {
+      timeRemaining--;
+      updateDisplay();
+    } else {
+      clearInterval(timer);
+      timer = null;
+      isRunning = false;
+      startPauseBtn.textContent = 'Start';
+      // Play sound on session end
+      playAudioAlert();
+      nextMode();
+      // Auto start next session after 5 seconds
+      setTimeout(() => {
+        startPauseTimer();
+      }, 5000);
+    }
+  }
+
+  // Start or pause the timer
+  function startPauseTimer() {
+    if (isRunning) {
+      // Pause
+      clearInterval(timer);
+      timer = null;
+      isRunning = false;
+      startPauseBtn.textContent = 'Start';
+    } else {
+      // Start
+      if (timer === null) {
+        loadTime();
+        updateDisplay();
+      }
+      timer = setInterval(timerTick, 1000);
+      isRunning = true;
+      startPauseBtn.textContent = 'Pause';
+      // Play background music on start
+      playBackgroundMusic();
+    }
+  }
+
+  // Reset the timer and state
+  function resetTimer() {
+    clearInterval(timer);
+    timer = null;
+    isRunning = false;
+    currentMode = 'pomodoro';
+    pomodoroCount = 0;
+    loadTime();
+    updateDisplay();
+    startPauseBtn.textContent = 'Start';
+    pauseBackgroundMusic();
+  }
+
+  // Show random quote from array
+  function showRandomQuote() {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    quoteEl.textContent = `“${quotes[randomIndex]}”`;
+  }
+
+  // Play alert sound (using Web Audio API beep)
+  function playAudioAlert() {
+    const context = new AudioContext();
+    const o = context.createOscillator();
+    const g = context.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(440, context.currentTime);
+    g.gain.setValueAtTime(0.15, context.currentTime);
+    o.connect(g);
+    g.connect(context.destination);
+    o.start();
+    o.stop(context.currentTime + 0.3);
+  }
+
+  // Play background music
+  function playBackgroundMusic() {
+    // User gesture required, so play only if paused
+    if(bgMusic.paused){
+      bgMusic.volume = 0.15;
+      bgMusic.play().catch(() => {
+        // auto-play might be blocked, ignore error
+      });
+    }
+  }
+  // Pause background music
+  function pauseBackgroundMusic() {
+    bgMusic.pause();
+  }
+
+  // Event listeners
+  startPauseBtn.addEventListener('click', startPauseTimer);
+  resetBtn.addEventListener('click', resetTimer);
+
+  // When settings change while timer is stopped, update display immediately
+  [pomodoroLengthInput, shortBreakLengthInput, longBreakLengthInput, pomodorosBeforeLongBreakInput].forEach(input => {
+    input.addEventListener('change', () => {
+      if (!isRunning) {
+        loadTime();
+        updateDisplay();
+      }
+    });
+  });
+
+  // Initialize on page load
+  resetTimer();
+  showRandomQuote();
+</script>
+</body>
+</html>
+
